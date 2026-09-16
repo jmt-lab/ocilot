@@ -299,6 +299,18 @@ impl Registry {
         let size = bytes.len();
         let hash = Sha256::digest(bytes.as_slice());
         let digest = format!("sha256:{}", base16::encode_lower(hash.as_slice()));
+        if tracing::enabled!(tracing::Level::TRACE) {
+            trace!(
+                target: "registry",
+                "put_manifest REQUEST: repository={repository} reference={reference} content_type={media_type} size={size} digest={digest}"
+            );
+            let pretty = std::str::from_utf8(&bytes)
+                .ok()
+                .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok())
+                .and_then(|v| serde_json::to_string_pretty(&v).ok())
+                .unwrap_or_else(|| String::from_utf8_lossy(&bytes).into_owned());
+            trace!(target: "registry", "put_manifest REQUEST BODY: {pretty}");
+        }
         let response = self
             .client
             .put_manifest(
